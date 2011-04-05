@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>My Very Own Comic Viewer</title>
+
+
+<style type="text/css">
+.button {
+	width: 100pt;
+	text-align: center;
+	background: teal;
+	font-size: 14pt;
+	border-radius: 4pt 4pt;
+	margin-bottom: 6pt;
+	color: white;
+}
+#prevBtn {
+	float: left;
+}
+#nextBtn {
+	float: right;
+}
+#currentImage {
+	text-align: center;
+}
+#showComic {
+	visibility: hidden;
+}
+
+.image {
+	width:  100%;
+}
+</style>
+
+<script src="jquery.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+	function Storyline(jsonData) {
+		this.data = jsonData;
+		this.currentInx = 0;
+		this.title = jsonData.title;
+		var imgs = [];
+		$.each(jsonData.pages, function(i, url) {
+			var img = document.createElement('img');
+			img['src'] = url;
+			img.className = 'image';
+			imgs.push(img);
+		});
+		this.pages =imgs;
+		return this;
+	};
+	Storyline.prototype.curPage = function() { 
+		return this.pages[this.currentInx]; 
+	};
+	Storyline.prototype.isFirst = 
+		function() { return this.currentInx == 0; };
+	Storyline.prototype.isLast =
+		function() { return this.currentInx + 1 == this.pages.length; }
+	Storyline.prototype.next = function() { 
+		if (!this.isLast())
+			this.currentInx += 1;
+	}
+	Storyline.prototype.prev = function() {
+		if (this.currentInx != 0)
+			this.currentInx -= 1;
+	}
+	
+	Storyline.prototype.reset = function() { currentInx = 0; }
+
+	function Comic(jsonData) {
+		this.name = jsonData.comics;
+		var storylines = [];
+		$.each(jsonData.storylines, function(i, sdata) {
+			storylines.push(new Storyline(sdata));
+		});
+		this.storylines = storylines;
+		return this;
+	}
+</script>
+
+<script type="text/javascript">
+	var curComic;
+	var curStoryline;
+	function setCurrentArc(arc) {
+		curStoryline = arc;
+		showCurrentImage();
+	}
+	function loadJSON() {
+		$.getJSON("story-data.js", {}, function(data) {
+			if (data.storylines.length == 0)
+			{
+				return;
+			}
+			curComic = new Comic(data);
+			$("#showComic").css('visibility', 'visible');
+			$("#noComic").css('visibility', 'hidden');
+			
+			$("#currentComic").html(curComic.name);			
+			$("#nextBtn").click(nextImage);
+			$("#prevBtn").click(previousImage);
+			$.each(curComic.storylines, function(inx, arc) {
+				var li = document.createElement('li');
+				li.innerHTML = arc.title;
+				li.className = "button";
+				li.addEventListener("click", function() {
+						setCurrentArc(arc);
+					}
+					, false);
+				$("#storyArcs").append(li);
+			});
+			setCurrentArc(curComic.storylines[0]);
+		});
+	}
+
+	function showCurrentImage()
+	{
+		$("#currentImage").html(curStoryline.curPage());
+	}
+
+	function nextImage()
+	{
+		if (curStoryline.isLast())
+			return;
+		curStoryline.next();
+		showCurrentImage();
+	}
+	function previousImage()
+	{
+		if (curStoryline.isFirst())
+			return;
+		curStoryline.prev();
+		showCurrentImage();
+	}
+	window.onload = loadJSON;
+	
+	</script>
+
+
+</head>
+
+<body>
+<div id="noComic">
+Data file contains no comic description or the comic contains no storylines.
+</div>
+<div id="showComic">
+	<h1 id="currentComic"></h1>
+	<ul id="storyArcs"></ul>
+	<div id="viewer">
+		<div class="button" id="prevBtn">Previous</div>
+		<div class="button" id="nextBtn">Next</div>
+		<div id="currentImage"></div>
+	</div>
+</div>
+</body>
+</html>
